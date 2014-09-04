@@ -1,6 +1,8 @@
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -11,6 +13,7 @@
 #include <pcap.h>
 #define TELNET 23
 #define HTTP 80
+using namespace std;
 
 /* We've included the UDP header struct for your ease of customization.
  * For your protocol, you might want to look at netinet/tcp.h for hints
@@ -128,10 +131,37 @@ void dump_TCP_packet(const unsigned char *packet, struct timeval ts,
     /*printf("%s UDP src_port=%d dst_port=%d length=%d\n", 
             timestamp_string(ts), ntohs(tcp->th_sport), 
             ntohs(tcp->th_dport), ntohs(tcp->th_seqnum));*/
-    cptr += sizeof(struct TCP_hdr);
+    cptr += sizeof(struct TCP_hdr)-4;
     capture_len -= sizeof(struct TCP_hdr);
+    if (capture_len < 10)
+        return;
+    cout<<"Len"<<capture_len<<' ';
     for(i=0;i<capture_len;i++)
-        printf("%02x ", cptr[i]);
+    {
+        //if(isprint(cptr[i]))
+        if(cptr[i] >= 32 && cptr[i] < 127)
+            printf("%c", cptr[i]);
+        else
+        {
+            switch(cptr[i])
+            {
+                case 10:
+                    printf("\n");
+                    break;
+                case 13:
+                    printf(" %u", cptr[i]);
+                    break;
+                case 1:
+                case 2:
+                case 4:
+                    printf(" %u", cptr[i]);
+                    break;
+                default:;
+                    printf(" %u", cptr[i]);
+            }
+        }
+    }
+    cout<<"\n";
 }
 
 /* dump_UDP_packet()
