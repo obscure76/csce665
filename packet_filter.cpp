@@ -13,6 +13,8 @@
 #include <pcap.h>
 #define TELNET 23
 #define HTTP 80
+#define SERVER 0
+#define CLIENT 1
 using namespace std;
 
 /* We've included the UDP header struct for your ease of customization.
@@ -48,7 +50,6 @@ struct TCP_hdr {
         th_res2:2;
     unsigned short int th_win;
     unsigned short int th_chksum;
-    unsigned short int th_urgptr;
 };
 
 
@@ -64,12 +65,91 @@ void problem_pkt(struct timeval ts, const char *reason);
 /* Report the specific problem of a packet being too short. */
 void too_short(struct timeval ts, const char *truncated_hdr);
 
-void process_telnet(const unsigned char *packet, unsigned int capture_len)
+bool isValidHTTPReqMethod(unsigned char *cptr)
 {
-
+	return true;	
 }
 
-void dump_TCP_packet(const unsigned char *packet, struct timeval ts,
+bool isValidHTTPResponse(unsigned char *cptr)
+{
+	return true;
+}
+
+void print_http_session(bool clientflag, unsigned char *cptr, int capture_len)
+{
+    if (capture_len < 10)
+        return;
+    //cout<<"Len"<<capture_len<<' ';
+	if(clientflag)
+	{
+		if(cptr[0] != 'G' || cptr[1] != 'E' || cptr[2] != 'T')
+			return;
+	} else {
+		if(cptr[0] != 'H' || cptr[1] != 'T' || cptr[2] != 'T' || cptr[3] != 'P')
+			return;
+	}
+
+    for(int i=0;i<capture_len;i++)
+    {
+		if(cptr[i]==13 && cptr[i+1]==10 && cptr[i+2]==13 && cptr[i+3]==10)
+		{
+			cout<<"\n";
+			return;
+		}
+        if(cptr[i] >= 32 && cptr[i] < 127 || cptr[i] ==10 || cptr[i] ==13)
+            printf("%c", cptr[i]);
+        else
+        {
+            switch(cptr[i])
+            {
+				case 10:
+					cout<<"\n";
+                default:;
+                    printf("%u", cptr[i]);
+            }
+        }
+    }
+}
+
+void print_telnet_session(bool clientflag, unsigned char *cptr, int capture_len)
+{
+    for(int i=0;i<capture_len;i++)
+    {
+        if(cptr[i] >= 32 && cptr[i] < 127 )
+            printf("%c", cptr[i]);
+        else
+        {
+            switch(cptr[i])
+            {
+				case 10:
+					cout<<"\n";
+                default:;
+                    printf("%u", cptr[i]);
+            }
+        }
+    }
+}
+
+void print_ftp_session(bool clientflag, unsigned char *cptr, int capture_len)
+{
+    for(int i=0;i<capture_len;i++)
+    {
+        if(cptr[i] >= 32 && cptr[i] < 127)
+            printf("%c", cptr[i]);
+        else
+        {
+            switch(cptr[i])
+            {
+				case 10:
+					cout<<"\n";
+                default:;
+                    printf("%u", cptr[i]);
+            }
+        }
+    }
+}
+
+void process_tcp_packet(const unsigned char *packet, struct timeval ts,
         unsigned int capture_len)
 {
     struct ip *ip;
@@ -127,42 +207,43 @@ void dump_TCP_packet(const unsigned char *packet, struct timeval ts,
 
     tcp = (struct TCP_hdr*) packet;
     cptr = (unsigned char *)packet;
-
-    /*printf("%s UDP src_port=%d dst_port=%d length=%d\n", 
-            timestamp_string(ts), ntohs(tcp->th_sport), 
-            ntohs(tcp->th_dport), ntohs(tcp->th_seqnum));*/
-    cptr += sizeof(struct TCP_hdr)-4;
+    cptr += sizeof(struct TCP_hdr);
     capture_len -= sizeof(struct TCP_hdr);
-    if (capture_len < 10)
-        return;
-    cout<<"Len"<<capture_len<<' ';
-    for(i=0;i<capture_len;i++)
-    {
-        //if(isprint(cptr[i]))
-        if(cptr[i] >= 32 && cptr[i] < 127)
-            printf("%c", cptr[i]);
-        else
-        {
-            switch(cptr[i])
-            {
-                case 10:
-                    printf("\n");
-                    break;
-                case 13:
-                    printf(" %u", cptr[i]);
-                    break;
-                case 1:
-                case 2:
-                case 4:
-                    printf(" %u", cptr[i]);
-                    break;
-                default:;
-                    printf(" %u", cptr[i]);
-            }
-        }
-    }
-    cout<<"\n";
+
+	int srcport = ntohs(tcp->th_sport);
+	int dstport = ntohs(tcp->th_dport);
+
+	switch(srcport)
+	{
+		case 80:
+			print_http_session(SERVER, cptr, capture_len);
+			break;
+		case 23:
+			print_telnet_session(SERVER, cptr, capture_len);
+			break;
+		case 21:
+			print_ftp_session(SERVER, cptr, capture_len);
+			break;
+		default:
+			break;
+	}
+
+	switch(dstport)
+	{
+		case 80:
+			print_http_session(CLIENT, cptr, capture_len);
+			break;
+		case 23:
+			print_telnet_session(CLIENT, cptr, capture_len);
+			break;
+		case 21:
+			print_ftp_session(CLIENT, cptr, capture_len);
+			break;
+		default:
+			break;
+	}
 }
+
 
 /* dump_UDP_packet()
  *
@@ -285,12 +366,8 @@ int main(int argc, char *argv[])
      */
     while ((packet = pcap_next(pcap, &header)) != NULL)
     {
-        //dump_UDP_packet(packet, header.ts, header.caplen);
-        //printf("Jacked a packet with length of [%d]\n", header.caplen);
-        dump_TCP_packet(packet, header.ts, header.caplen);
+        process_tcp_packet(packet, header.ts, header.caplen);
     }
-
-    // terminate
     return 0;
 }
 
