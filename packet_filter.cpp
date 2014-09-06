@@ -124,29 +124,29 @@ void print_telnet_session(bool clientflag, unsigned char *cptr, int capture_len)
 				case 10:
 					cout<<"\n";
                 default:;
-                    printf("%u", cptr[i]);
+                    printf(" %u", cptr[i]);
             }
         }
     }
+	cout<<"end of packet\n\n";
 }
 
 void print_ftp_session(bool clientflag, unsigned char *cptr, int capture_len)
 {
     for(int i=0;i<capture_len;i++)
     {
-        if(cptr[i] >= 32 && cptr[i] < 127)
+        if(cptr[i] >= 32 && cptr[i] < 127 || cptr[i] == '\n' || cptr[i] =='\r')
             printf("%c", cptr[i]);
         else
         {
             switch(cptr[i])
             {
-				case 10:
-					cout<<"\n";
                 default:;
-                    printf("%u", cptr[i]);
+                    printf(" %u", cptr[i]);
             }
         }
     }
+	cout<<"endofpkt\n";
 }
 
 void process_tcp_packet(const unsigned char *packet, struct timeval ts,
