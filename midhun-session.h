@@ -54,5 +54,5 @@ void too_short(struct timeval ts, const char *truncated_hdr);
 void print_http_session(bool clientflag, unsigned char *cptr, int capture_len);
 void print_telnet_session(bool clientflag, unsigned char *cptr, int capture_len);
 void print_ftp_session(bool clientflag, unsigned char *cptr, int capture_len);
-void print_init(uint32_t th_seq, uint32_t th_ack, uint32_t capture_len);
+void print_init(uint32_t th_seq, uint32_t th_ack, uint32_t capture_len, unsigned char);
 void process_tcp_packet(const unsigned char *packet, struct timeval ts, unsigned int capture_len);

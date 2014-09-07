@@ -1,78 +1,17 @@
 #include <midhun-session.h>
 
-void print_http_session(bool clientflag, unsigned char *cptr, int capture_len)
-{
-
-    for(int i=0;i<capture_len;i++)
-    {
-        if(cptr[i] >= 32 && cptr[i] < 127 || cptr[i] ==10)
-            printf("%c", cptr[i]);
-        else
-        {
-            switch(cptr[i])
-            {
-				case 13:
-					break;
-				case 9:
-					//printf("%c", cptr[i]);
-					break;
-                default:
-                    //printf("%u", cptr[i]);
-					break;
-            }
-        }
-    }
-	cout<<"\n***************************************************************************************";
-}
-
-void print_telnet_session(bool clientflag, unsigned char *cptr, int capture_len)
-{
-    for(int i=0;i<capture_len;i++)
-    {
-        if(cptr[i] >= 32 && cptr[i] < 127 || cptr[i]=='\n' )
-            printf("%c", cptr[i]);
-        else
-        {
-			if(cptr[i]>=127 || cptr[i] <=31)
-				continue;
-            switch(cptr[i])
-            {
-				case 13:
-					break;
-                default:;
-                    printf(" %u", cptr[i]);
-            }
-        }
-    }
-	cout<<"\n***************************************************************************************";
-}
-
-void print_ftp_session(bool clientflag, unsigned char *cptr, int capture_len)
-{
-    for(int i=0;i<capture_len;i++)
-    {
-        if(cptr[i] >= 32 && cptr[i] < 127 || cptr[i] == '\n')
-            printf("%c", cptr[i]);
-        else
-        {
-			continue;
-            switch(cptr[i])
-            {
-				case 13:
-					break;
-                default:
-                    printf(" %u", cptr[i]);
-            }
-        }
-    }
-	cout<<"\n***************************************************************************************";
-}
-void print_init(uint32_t th_seq, uint32_t th_ack, uint32_t capture_len)
+void print_init(uint32_t th_seq, uint32_t th_ack, uint32_t capture_len, unsigned char *cptr)
 {
 	cout<<setw(17)<<"Seq : "<<ntohl(th_seq)<<"\n";
 	cout<<setw(17)<<"Ack : "<<ntohl(th_ack)<<"\n";
 	cout<<setw(17)<<"Payload size : "<<capture_len<<"\n";
 	cout<<setw(17)<<"Payload :\n";
+	for(int i=0;i<capture_len;i++)
+	{
+        if(cptr[i] >= 32 && cptr[i] < 127 || cptr[i] ==10)
+            printf("%c", cptr[i]);
+	}
+	cout<<"\n***************************************************************************************";
 }
 
 void process_tcp_packet(const unsigned char *packet, struct timeval ts,
@@ -145,21 +84,18 @@ void process_tcp_packet(const unsigned char *packet, struct timeval ts,
 	switch(srcport)
 	{
 		case 80:
-			cout<<"Server to client: \n";
-			print_init(tcp->th_seq, tcp->th_ack, capture_len);
-			print_http_session(SERVER, cptr, capture_len);
+			cout<<"HTTP Server to client: \n";
+			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
 		case 23:
-			cout<<"Server to client \n";
-			print_init(tcp->th_seq, tcp->th_ack, capture_len);
-			print_telnet_session(SERVER, cptr, capture_len);
+			cout<<"TELNET Server to client \n";
+			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
 		case 21:
-			cout<<"Server to client \n";
-			print_init(tcp->th_seq, tcp->th_ack, capture_len);
-			print_ftp_session(SERVER, cptr, capture_len);
+			cout<<"FTP Server to client \n";
+			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
 		default:
@@ -169,21 +105,18 @@ void process_tcp_packet(const unsigned char *packet, struct timeval ts,
 	switch(dstport)
 	{
 		case 80:
-			cout<<"Client to Server:\n";
-			print_init(tcp->th_seq, tcp->th_ack, capture_len);
-			print_http_session(CLIENT, cptr, capture_len);
+			cout<<"HTTP Client to Server:\n";
+			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
 		case 23:
-			cout<<"Client to Server:\n";
-			print_init(tcp->th_seq, tcp->th_ack, capture_len);
-			print_telnet_session(CLIENT, cptr, capture_len);
+			cout<<"TELNET Client to Server:\n";
+			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
 		case 21:
-			cout<<"Client to Server:\n";
-			print_init(tcp->th_seq, tcp->th_ack, capture_len);
-			print_ftp_session(CLIENT, cptr, capture_len);
+			cout<<"FTP Client to Server:\n";
+			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
 		default:
