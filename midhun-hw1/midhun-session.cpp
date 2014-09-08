@@ -23,6 +23,7 @@ void process_tcp_packet(const unsigned char *packet, struct timeval ts,
 		unsigned int capture_len)
 {
 	struct ip *ip;
+	struct iphdr *iph;
 	int i;
 	const struct sniff_tcp *tcp;
 	unsigned int IP_header_length;
@@ -59,11 +60,11 @@ void process_tcp_packet(const unsigned char *packet, struct timeval ts,
 		return;
 	}
 
-	if (ip->ip_p != IPPROTO_TCP)
+	/*if (ip->ip_p != IPPROTO_TCP)
 	{
 		//problem_pkt(ts, "non-TCP packet");
 		return;
-	}
+	}*/
 
 	/* Skip over the IP header to get to the UDP header.*/
 	packet += IP_header_length;
@@ -82,24 +83,28 @@ void process_tcp_packet(const unsigned char *packet, struct timeval ts,
 	capture_len -= size_tcp;
 	if(capture_len==0)
 		return;
-
+	unsigned char *diptr;
+	diptr = (unsigned char*)packet - sizeof(struct in_addr); 
 	int srcport = ntohs(tcp->th_sport);
 	int dstport = ntohs(tcp->th_dport);
 
 	switch(srcport)
 	{
 		case 80:
-			cout<<"HTTP Server "<<inet_ntoa(ip->ip_src)<<" to client: "<<inet_ntoa(ip->ip_dst)<<"\n";
+			cout<<"HTTP Server "<<inet_ntoa(ip->ip_src)<<" to client: ";
+			printf("%d.%d.%d.%d\n", diptr[0], diptr[1], diptr[2], diptr[3] );
 			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
 		case 23:
-			cout<<"TELNET Server "<<inet_ntoa(ip->ip_src)<<" to client: "<<inet_ntoa(ip->ip_dst)<<"\n";
+			cout<<"TELNET Server "<<inet_ntoa(ip->ip_src)<<" to client: ";
+			printf("%d.%d.%d.%d\n", diptr[0], diptr[1], diptr[2], diptr[3] );
 			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
 		case 21:
-			cout<<"FTP Server "<<inet_ntoa(ip->ip_src)<<" to client: "<<inet_ntoa(ip->ip_dst)<<"\n";
+			cout<<"FTP Server "<<inet_ntoa(ip->ip_src)<<" to client: ";
+			printf("%d.%d.%d.%d\n", diptr[0], diptr[1], diptr[2], diptr[3] );
 			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
@@ -110,17 +115,20 @@ void process_tcp_packet(const unsigned char *packet, struct timeval ts,
 	switch(dstport)
 	{
 		case 80:
-			cout<<"HTTP Client "<<inet_ntoa(ip->ip_src)<<" to Server:"<<inet_ntoa(ip->ip_dst)<<"\n";
+			cout<<"HTTP Client "<<inet_ntoa(ip->ip_src)<<" to Server:";
+			printf("%d.%d.%d.%d\n", diptr[0], diptr[1], diptr[2], diptr[3] );
 			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
 		case 23:
-			cout<<"TELNET Client "<<inet_ntoa(ip->ip_src)<<" to Server:"<<inet_ntoa(ip->ip_dst)<<"\n";
+			cout<<"TELNET Client "<<inet_ntoa(ip->ip_src)<<" to Server:";
+			printf("%d.%d.%d.%d\n", diptr[0], diptr[1], diptr[2], diptr[3] );
 			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
 		case 21:
-			cout<<"FTP Client "<<inet_ntoa(ip->ip_src)<<" to Server:"<<inet_ntoa(ip->ip_dst)<<"\n";
+			cout<<"FTP Client "<<inet_ntoa(ip->ip_src)<<" to Server:";
+			printf("%d.%d.%d.%d\n", diptr[0], diptr[1], diptr[2], diptr[3] );
 			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
@@ -158,16 +166,16 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "error reading pcap file: %s\n", errbuf);
 		exit(1);
 	}
-    /* Compile and apply the filter */
-    if (pcap_compile(pcap, &fp, filter_exp, 0, PCAP_NETMASK_UNKNOWN) == -1) {
-        fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(pcap));
-        return(2);
-    }
+	/* Compile and apply the filter */
+	if (pcap_compile(pcap, &fp, filter_exp, 0, PCAP_NETMASK_UNKNOWN) == -1) {
+		fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(pcap));
+		return(2);
+	}
 
-    if (pcap_setfilter(pcap, &fp) == -1) {
-        fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, pcap_geterr(pcap));
-        return(2);
-    }
+	if (pcap_setfilter(pcap, &fp) == -1) {
+		fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, pcap_geterr(pcap));
+		return(2);
+	}
 
 
 	/* Now just loop through extracting packets as long as we have
