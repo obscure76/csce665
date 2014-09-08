@@ -10,6 +10,7 @@
 #include <net/if.h>
 #include <netinet/if_ether.h>
 #include <netinet/tcp.h>
+#include <arpa/inet.h>
 
 #include <pcap.h>
 #define TELNET 23

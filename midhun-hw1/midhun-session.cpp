@@ -10,6 +10,11 @@ void print_init(uint32_t th_seq, uint32_t th_ack, uint32_t capture_len, unsigned
 	{
         if(cptr[i] >= 32 && cptr[i] < 127 || cptr[i] ==10)
             printf("%c", cptr[i]);
+		else
+		{
+			//Displaying ascii num of unreadable char
+			printf(" %d", cptr[i]);
+		}
 	}
 	cout<<"\n***************************************************************************************";
 }
@@ -84,17 +89,17 @@ void process_tcp_packet(const unsigned char *packet, struct timeval ts,
 	switch(srcport)
 	{
 		case 80:
-			cout<<"HTTP Server to client: \n";
+			cout<<"HTTP Server "<<inet_ntoa(ip->ip_src)<<" to client: "<<inet_ntoa(ip->ip_dst)<<"\n";
 			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
 		case 23:
-			cout<<"TELNET Server to client \n";
+			cout<<"TELNET Server "<<inet_ntoa(ip->ip_src)<<" to client: "<<inet_ntoa(ip->ip_dst)<<"\n";
 			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
 		case 21:
-			cout<<"FTP Server to client \n";
+			cout<<"FTP Server "<<inet_ntoa(ip->ip_src)<<" to client: "<<inet_ntoa(ip->ip_dst)<<"\n";
 			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
@@ -105,17 +110,17 @@ void process_tcp_packet(const unsigned char *packet, struct timeval ts,
 	switch(dstport)
 	{
 		case 80:
-			cout<<"HTTP Client to Server:\n";
+			cout<<"HTTP Client "<<inet_ntoa(ip->ip_src)<<" to Server:"<<inet_ntoa(ip->ip_dst)<<"\n";
 			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
 		case 23:
-			cout<<"TELNET Client to Server:\n";
+			cout<<"TELNET Client "<<inet_ntoa(ip->ip_src)<<" to Server:"<<inet_ntoa(ip->ip_dst)<<"\n";
 			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
 		case 21:
-			cout<<"FTP Client to Server:\n";
+			cout<<"FTP Client "<<inet_ntoa(ip->ip_src)<<" to Server:"<<inet_ntoa(ip->ip_dst)<<"\n";
 			print_init(tcp->th_seq, tcp->th_ack, capture_len, cptr);
 			cout<<"\n\n";
 			break;
@@ -133,7 +138,7 @@ int main(int argc, char *argv[])
 	struct pcap_pkthdr header;
 	struct tcphdr *tcp;
 	struct bpf_program fp;      /* The compiled filter */
-	char filter_exp[] = "port 80";  /* The filter expression */
+	char filter_exp[] = "port 23 or port 21 or port 80";
 	bpf_u_int32 mask;       /* Our netmask */
 	bpf_u_int32 net;        /* Our IP */
 
@@ -153,6 +158,17 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "error reading pcap file: %s\n", errbuf);
 		exit(1);
 	}
+    /* Compile and apply the filter */
+    if (pcap_compile(pcap, &fp, filter_exp, 0, PCAP_NETMASK_UNKNOWN) == -1) {
+        fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(pcap));
+        return(2);
+    }
+
+    if (pcap_setfilter(pcap, &fp) == -1) {
+        fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, pcap_geterr(pcap));
+        return(2);
+    }
+
 
 	/* Now just loop through extracting packets as long as we have
 	 * some to read.
