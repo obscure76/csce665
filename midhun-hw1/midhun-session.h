@@ -4,6 +4,10 @@
 #include <string.h>
 #include <ctype.h>
 #include <iomanip>
+#include<list>
+#include<map>
+#include<fstream>
+#include<string>
 
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -15,6 +19,7 @@
 #include <pcap.h>
 #define TELNET 23
 #define HTTP 80
+#define FTP 21
 #define SERVER 0
 #define CLIENT 1
 using namespace std;
@@ -57,3 +62,18 @@ void print_telnet_session(bool clientflag, unsigned char *cptr, int capture_len)
 void print_ftp_session(bool clientflag, unsigned char *cptr, int capture_len);
 void print_init(uint32_t th_seq, uint32_t th_ack, uint32_t capture_len, unsigned char);
 void process_tcp_packet(const unsigned char *packet, struct timeval ts, unsigned int capture_len);
+
+#define BUFSIZE 1000000
+typedef struct session_info_t
+{
+	uint32_t client_addr;
+	unsigned char buf[BUFSIZE];
+	int index;
+    FILE *fp;
+} session_info;
+
+list<session_info> ftplist;
+list<session_info> telnetlist;
+list<session_info> httplist;
+
+
