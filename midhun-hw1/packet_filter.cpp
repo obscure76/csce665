@@ -32,7 +32,7 @@ void print_http_session(bool clientflag, unsigned char *cptr, int capture_len, s
 			{
                 FILE *fp = it->fp;
                 uint32_t index = it->index;
-                fwrite(str, sizeof(char), capture_len, fp);
+                fwrite(str, sizeof(char), len, fp);
                 fwrite(cptr, sizeof(char), capture_len, fp);
                 it->index += capture_len+len;
                 return;
@@ -62,7 +62,7 @@ void print_telnet_session(bool clientflag, unsigned char *cptr, int capture_len,
         {
             FILE *fp = it->fp;
             uint32_t index = it->index;
-            fwrite(str, sizeof(char), capture_len, fp);
+            fwrite(str, sizeof(char), len, fp);
             fwrite(cptr, sizeof(char), capture_len, fp);
             it->index += capture_len+len;
             return;
@@ -73,7 +73,7 @@ void print_telnet_session(bool clientflag, unsigned char *cptr, int capture_len,
     session.index = 0;
     string fname = to_string(addr.s_addr)+to_string(TELNET);
     session.fp = fopen(fname.c_str(), "w+");
-    fwrite(str, sizeof(char), capture_len, session.fp);
+    fwrite(str, sizeof(char), len, session.fp);
     fwrite(cptr, sizeof(char), capture_len, session.fp);
     session.index+=capture_len+len;
     telnetlist.push_back(session);
@@ -89,7 +89,7 @@ void print_ftp_session(bool clientflag, unsigned char *cptr, int capture_len, st
             /* There was a started session ; update current info */
             FILE *fp = it->fp;
             uint32_t index = it->index;
-            fwrite(str, sizeof(char), capture_len, fp);
+            fwrite(str, sizeof(char), len, fp);
             fwrite(cptr, sizeof(char), capture_len, fp);
             it->index += capture_len+len;
             return;
@@ -101,7 +101,7 @@ void print_ftp_session(bool clientflag, unsigned char *cptr, int capture_len, st
     session.index = 0;
     string fname = to_string(addr.s_addr)+to_string(FTP);
     session.fp = fopen(fname.c_str(), "w+");
-    fwrite(str, sizeof(char), capture_len, session.fp);
+    fwrite(str, sizeof(char), len, session.fp);
     fwrite(cptr, sizeof(char), capture_len, session.fp);
     session.index += capture_len+len;
     ftplist.push_back(session);
@@ -174,31 +174,31 @@ void process_tcp_packet(const unsigned char *packet, struct timeval ts,
         return;
 
     unsigned char *diptr;
-    diptr = (unsigned char*)cptr - sizeof(struct in_addr); 
+    diptr = (unsigned char*)packet - sizeof(struct in_addr); 
 
     char temp[200] = {'\0'};
     int len;
     switch(srcport)
     {
         case 80:
-            len = sprintf(temp, "\n\nHTTP Server %s to client %d.%d.%d.%d \n"
-                    "SEQ num: %d \n Ack num: %d \n",
-                    inet_ntoa(ip->ip_src), diptr[0], diptr[1], diptr[2], diptr[3],
-                    tcp->th_seq, tcp->th_ack);
+            len = sprintf(temp, "\n\nHTTP Server %s to client  %d.%d.%d.%d \n"
+                    "SEQ num: %d \n Ack num: %d \n Payload \n",
+                    inet_ntoa(ip->ip_src), diptr[3], diptr[2], diptr[1], diptr[0],
+                    ntohl(tcp->th_seq), ntohl(tcp->th_ack));
             print_http_session(SERVER, cptr, capture_len, ip->ip_dst, temp, len);
             break;
         case 23:
             len = sprintf(temp, "\n\nTELNET Server %s to client %d.%d.%d.%d \n"
-                    "SEQ num: %d \n Ack num: %d \n",
+                    "SEQ num: %d \n Ack num: %d \n Payload \n",
                     inet_ntoa(ip->ip_src), diptr[0], diptr[1], diptr[2], diptr[3],
-                    tcp->th_seq, tcp->th_ack);
+                    ntohl(tcp->th_seq), ntohl(tcp->th_ack));
             print_telnet_session(SERVER, cptr, capture_len, ip->ip_dst, temp, len);
             break;
         case 21:
             len = sprintf(temp, "\n\nFTP Server %s to client %d.%d.%d.%d \n"
-                    "SEQ num: %d \n Ack num: %d \n",
+                    "SEQ num: %d \n Ack num: %d \n Payload \n",
                     inet_ntoa(ip->ip_src), diptr[0], diptr[1], diptr[2], diptr[3],
-                    tcp->th_seq, tcp->th_ack);
+                    ntohl(tcp->th_seq), ntohl(tcp->th_ack));
             print_ftp_session(SERVER, cptr, capture_len, ip->ip_dst, temp, len);
             break;
         default:
@@ -209,25 +209,23 @@ void process_tcp_packet(const unsigned char *packet, struct timeval ts,
     {
         case 80:
             len = sprintf(temp, "\n\nHTTP Client %s to server %d.%d.%d.%d \n"
-                    "SEQ num: %d \n Ack num: %d \n",
+                    "SEQ num: %d \n Ack num: %d \n Payload :\n",
                     inet_ntoa(ip->ip_src), diptr[0], diptr[1], diptr[2], diptr[3],
-                    tcp->th_seq, tcp->th_ack);
-            cout<<len;
+                    ntohl(tcp->th_seq), ntohl(tcp->th_ack));
             print_http_session(CLIENT, cptr, capture_len, ip->ip_src, temp, len);
             break;
         case 23:
             len = sprintf(temp, "\n\nTELNET Client %s to Server %d.%d.%d.%d \n"
-                    "SEQ num: %d \n Ack num: %d \n",
+                    "SEQ num: %d \n Ack num: %d \n Payload \n",
                     inet_ntoa(ip->ip_src), diptr[0], diptr[1], diptr[2], diptr[3],
-                    tcp->th_seq, tcp->th_ack);
-            cout<<len;
+                    ntohl(tcp->th_seq), ntohl(tcp->th_ack));
             print_telnet_session(CLIENT, cptr, capture_len, ip->ip_src, temp, len);
             break;
         case 21:
             len = sprintf(temp, "\n\nFTP Client %s to Server %d.%d.%d.%d \n"
-                    "SEQ num: %d \n Ack num: %d \n",
+                    "SEQ num: %d \n Ack num: %d \n Payload \n ",
                     inet_ntoa(ip->ip_src), diptr[0], diptr[1], diptr[2], diptr[3],
-                    tcp->th_seq, tcp->th_ack);
+                    ntohl(tcp->th_seq), ntohl(tcp->th_ack));
             print_ftp_session(CLIENT, cptr, capture_len, ip->ip_src, temp, len);
             break;
         default:
